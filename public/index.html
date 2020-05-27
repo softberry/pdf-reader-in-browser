@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>PDF Reader in Browser</title>
+  </head>
+  <body>
+    <form action="/" method="GET">
+      <label>
+        Select PDF File: <br />
+        <input name="file" type="file" id="file" />
+      </label>
+    </form>
+    <div id="doc" style="position: relative;"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.4.456/pdf.min.js"></script>
+    <script src="pdf-reader.js"></script>
+    <script>
+      const file = document.querySelector("#file");
+      file.addEventListener("change", e => {
+        var input = e.target;
+
+        var reader = new FileReader();
+
+        reader.onload = function () {
+          var content = reader.result;
+          pdfjsLib
+            .getDocument(content)
+            .promise.then(pdf => {
+              return pdf.getPage(1).then(page1 => page1.getTextContent());
+            })
+            .then(content => {
+              PDFReader.getRows(content.items);
+            })
+            .catch(e => {
+              console.log(e);
+            });
+        };
+        reader.readAsArrayBuffer(input.files[0]);
+      });
+    </script>
+  </body>
+</html>
