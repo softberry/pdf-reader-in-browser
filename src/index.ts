@@ -1,72 +1,102 @@
-interface ItemsProps {
-  dir: string;
-  fontName: string;
-  height: number;
-  width: number;
-  str: string;
-  transform: [number, number, number, number, number, number];
-}
+import {
+  ItemsProps,
+  SimpeItemsObject,
+  SimpleItemprops,
+  CloumnStructure,
+  ColumnAlignment,
+} from "../@types/index.interface";
 
-interface SimpleItemprops {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  text: string;
-}
+class MyPDFReader {
+  // rows: SimpeItemsObject;
+  readonly page: ItemsProps[];
+  structure: CloumnStructure[];
 
-function writeAt(item: SimpleItemprops) {
-  const d = document.createElement("div");
-  d.style.position = "absolute";
-  d.style.left = item.x + "px";
-  d.style.top = 560 - item.y + "px";
-  d.style.width = item.w + "px";
-  d.style.fontSize = "8px";
-  d.style.backgroundColor = "#cccccc";
-  d.innerText = item.text;
-  document.getElementById("doc").appendChild(d);
-}
-export const getRows = (items: ItemsProps[]): { [key: string]: SimpleItemprops[] } => {
-  const rows: { [key: string]: SimpleItemprops[] } = {};
-  const simpleItems = items.map(
-    (item: ItemsProps): SimpleItemprops => {
-      return { x: item.transform[4], y: item.transform[5], w: item.width, h: item.height, text: item.str };
-    }
-  );
-  simpleItems.forEach(i => writeAt(i));
+  constructor(page: ItemsProps[]) {
+    this.page = page;
+    // this.rows = this.getRows();
+    this.structure = this.getColumnStructure();
 
-  simpleItems.forEach(item => {
-    if (rows[item.y.toString()] === undefined) {
-      rows[item.y.toString()] = [];
-    }
-    rows[item.y.toString()].push(item);
-  });
-
-  const sortedRows: { [key: string]: SimpleItemprops[] } = {};
-  for (const item in rows) {
-    sortedRows[item] = rows[item].sort((a, b) => (a.x < b.x ? -1 : 1));
+    console.log(this.rows);
+    console.log(this.structure);
   }
+  /**
+   *
+   * @param items ItemsProps[] Raw items from a single PDF page
+   */
+  get rows(): SimpeItemsObject {
+    const rows: { [key: string]: SimpleItemprops[] } = {};
 
-  const rowText: { [key: string]: string } = {};
-  for (const item in sortedRows) {
-    rowText[item] = sortedRows[item]
-      .map((a, i) => {
-        if (i === 0) return a.text;
-        const currentItem = a;
-        const prevItem = sortedRows[item][i - 1];
+    const simpleItems = this.page.map(
+      (item: ItemsProps): SimpleItemprops => {
+        return { x: item.transform[4], y: item.transform[5], w: item.width, h: item.height, text: item.str };
+      }
+    );
 
-        return Math.abs(prevItem.x + prevItem.w - currentItem.x) > 1 ? " </td><td> " + a.text : a.text;
-      })
-      .join("");
+    simpleItems.forEach(item => {
+      if (rows[item.y.toString()] === undefined) {
+        rows[item.y.toString()] = [];
+      }
+      rows[item.y.toString()].push(item);
+    });
+
+    Object.keys(rows).forEach(rowKey => {
+      rows[rowKey] = this.joinWords(rows[rowKey]);
+    });
+
+    const sortedRows: { [key: string]: SimpleItemprops[] } = {};
+    for (const item in rows) {
+      sortedRows[item] = rows[item].sort((a, b) => (a.x < b.x ? -1 : 1));
+    }
+
+    return sortedRows;
   }
+  joinWords(row: SimpleItemprops[]): SimpleItemprops[] {
+    const cols: SimpleItemprops[] = [row[0]];
 
-  document.getElementById("doc").innerHTML=`<table border="1">
-  ${Object.values(rowText).map(m=>`<tr><td>${m}</td></tr>`)}
-  </table>`  
-  console.log(rowText);
-  return rows;
+    row.forEach((b, i, arr): void => {
+      if (i > 0) {
+        const a = cols[cols.length - 1];
+        const absDiff = Math.abs(a.x + a.w - b.x);
+        absDiff <= 3 ? (cols[cols.length - 1] = { ...a, w: a.w + b.w, text: a.text + b.text }) : cols.push(b);
+      }
+    });
+    return cols;
+  }
+  getColumnStructure(): CloumnStructure[] {
+    const columStructureResult: CloumnStructure[] = [];
+    Object.values(this.rows).forEach(rawTable => {
+      rawTable.forEach(item => {
+        //"".replace(/[0-9\.\,]/g,"")
+        // is String?Links:Right
+        item.text = item.text.trim();
+        const structuredColumn: CloumnStructure = {
+          alignment: item.text.replace(/[0-9\.\,]/g, "") === "" ? ColumnAlignment.RIGHT : ColumnAlignment.LEFT,
+          x0: item.x,
+          x1: item.x + item.w,
+          y: item.y,
+        };
+        if (!this.doesColumnExist(columStructureResult, structuredColumn)) {
+          columStructureResult.push(structuredColumn);
+        }
+      });
+    });
+
+    return columStructureResult;
+  }
+  protected doesColumnExist(structure: CloumnStructure[], item: CloumnStructure): boolean {
+    const exists = structure.filter(col => {
+      return (
+        col.alignment === item.alignment &&
+        ((item.alignment === ColumnAlignment.LEFT && col.x0 === item.x0) || col.x1 === item.x1)
+      );
+    });
+    return exists.length > 0;
+  }
+}
+
+export const init = (page: ItemsProps[]) => {
+  return new MyPDFReader(page);
 };
-
 /*
 matrix( scaleX(), skewY(), skewX(), scaleY(), translateX(), translateY() )
 

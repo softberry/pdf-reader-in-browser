@@ -28,7 +28,7 @@
               return pdf.getPage(1).then(page1 => page1.getTextContent());
             })
             .then(content => {
-              PDFReader.getRows(content.items);
+              const rows = PDFReader.init(content.items);
             })
             .catch(e => {
               console.log(e);
