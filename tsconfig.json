@@ -7,7 +7,7 @@
     "target": "ESNext",
     "allowJs": true,
     "noEmit": false,
-    "typeRoots": ["./@types"]
+    "moduleResolution": "Node",
+    "typeRoots": ["src/types"]
   }
-
 }

@@ -2,6 +2,9 @@
 <html>
   <head>
     <title>PDF Reader in Browser</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Andada+Pro&display=swap" rel="stylesheet" />
   </head>
   <body>
     <form action="/" method="GET">
@@ -10,6 +13,31 @@
         <input name="file" type="file" id="file" />
       </label>
     </form>
+    <style>
+      html,
+      body {
+        font-family: "Andada Pro", serif;
+      }
+      table {
+        width: 100%;
+      }
+      tr {
+        padding: 2px 5px;
+      }
+      th {
+        border: 1px solid #e4ebe9;
+      }
+      tr:nth-child(even) {
+        background-color: #e4ebe9;
+      }
+      td,
+      th {
+        padding: 2px 4px;
+      }
+      td:first-of-type {
+        font-weight: bold;
+      }
+    </style>
     <div id="doc" style="position: relative;"></div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.4.456/pdf.min.js"></script>
     <script src="pdf-reader.js"></script>
@@ -28,6 +56,7 @@
               return pdf.getPage(1).then(page1 => page1.getTextContent());
             })
             .then(content => {
+              console.log(content);
               const rows = PDFReader.init(content.items);
             })
             .catch(e => {
